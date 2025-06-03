@@ -1,0 +1,82 @@
+version: '3.8'
+
+volumes:
+  db_data:
+
+networks:
+  front-back-creacion-pedidos-asignar-repartidores:
+  front-back-pagos-consulta-pedidos:
+  back-bd-creacion-pedidos-asignar-repartidores:
+  back-bd-pagos-consulta-pedidos:
+
+services:
+  db:
+    image: postgres:13-alpine
+    container_name: db_postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: delivernowdb
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql # archivo que crea las tablas y carga datos previos
+    ports:
+      - "5432:5432"
+    networks:
+      - back-bd-creacion-pedidos-asignar-repartidores
+      - back-bd-pagos-consulta-pedidos
+
+  back1-creacion-pedidos:
+    build: ./back1-creacion-pedidos
+    ports:
+      - "8081:8080"
+    networks:
+      - front-back-creacion-pedidos-asignar-repartidores
+      - back-bd-creacion-pedidos-asignar-repartidores
+    depends_on:
+      - db
+
+  back2-asignar-repartidores:
+    build: ./back2-asignar-repartidores
+    ports:
+      - "8082:8080"
+    networks:
+      - front-back-creacion-pedidos-asignar-repartidores
+      - back-bd-creacion-pedidos-asignar-repartidores
+    depends_on:
+      - db
+
+  back3-pagos:
+    build: ./back3-pagos
+    ports:
+      - "8083:8080"
+    networks:
+      - front-back-pagos-consulta-pedidos
+      - back-bd-pagos-consulta-pedidos
+    depends_on:
+      - db
+
+  back4-consulta-pedidos:
+    build: ./back4-consulta-pedidos
+    ports:
+      - "8084:8080"
+    networks:
+      - front-back-pagos-consulta-pedidos
+      - back-bd-pagos-consulta-pedidos
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    networks:
+      - front-back-creacion-pedidos-asignar-repartidores
+      - front-back-pagos-consulta-pedidos
+    depends_on:
+      - back1-creacion-pedidos
+      - back2-asignar-repartidores
+      - back3-pagos
+      - back4-consulta-pedidos
+
+
